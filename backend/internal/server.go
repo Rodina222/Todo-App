@@ -62,6 +62,33 @@ func ConnectToDB(db string) (*sql.DB, error) {
 	return database, nil
 }
 
+// GetAllTodos returns all the todo list items
+func (app *App) GetAllTodos(c *gin.Context) {
+
+	var todos []Todo
+
+	rows, err := app.db.Query("SELECT * FROM toDoList")
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var todo Todo
+		err := rows.Scan(&todo.ID, &todo.Title, &todo.Completed)
+
+		if err != nil {
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+
+		todos = append(todos, todo)
+	}
+
+	c.JSON(http.StatusOK, todos)
+}
+
 // CreateTodo creates/adds a todo item to the database
 func (app *App) CreateTodo(c *gin.Context) {
 
