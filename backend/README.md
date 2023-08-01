@@ -68,14 +68,6 @@ $ http://localhost:8096/todos/id
 ```sh
 $ http://localhost:8096/todos/id
 ```
-
-### __How to use docker?__
-
-Run the app using docker as follows:
-```sh
-$ docker-compose up -d
-```
-
 ### __How to test?__
 
 Run all the tests as follows: 
