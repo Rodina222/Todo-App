@@ -3,6 +3,7 @@ package internal
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -77,18 +78,40 @@ func TestDeleteTodo(t *testing.T) {
 
 	router := gin.Default()
 
-	router.DELETE("/todos/:id", app.DeleteTodo)
+	router.POST("/todos", app.CreateTodo)
 
-	id := 15
+	newTodo := Todo{
+		ID:        15,
+		Title:     "Todo2",
+		Completed: false,
+	}
 
-	req, err := http.NewRequest("DELETE", "/todos/"+strconv.Itoa(id), nil)
+	requestBody, err := json.Marshal(newTodo)
 	assert.NoError(t, err)
+
+	request, err := http.NewRequest("POST", "/todos", bytes.NewBuffer(requestBody))
+	assert.NoError(t, err)
+
+	request.Header.Set("Content-Type", "application/json")
 
 	recorder := httptest.NewRecorder()
 
+	router.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusCreated, recorder.Code, "got %d status code but want status code 201", recorder.Code)
+
+	router.DELETE("/todos/:id", app.DeleteTodo)
+
+	fmt.Println("newTodo.ID", newTodo.ID)
+
+	req, err := http.NewRequest("DELETE", "/todos/"+strconv.Itoa(newTodo.ID), nil)
+	assert.NoError(t, err)
+
+	rec := httptest.NewRecorder()
+
 	router.ServeHTTP(recorder, req)
 
-	assert.Equal(t, http.StatusAccepted, recorder.Code, "got %d status code but want status code 202", recorder.Code)
+	assert.Equal(t, http.StatusOK, rec.Code, "got %d status code but want status code 200", rec.Code)
 
 }
 
