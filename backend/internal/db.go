@@ -68,7 +68,11 @@ func (db *DB) CreateTable() error {
 		return err
 	}
 
-	query.Exec()
+	_, err = query.Exec()
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
