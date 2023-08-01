@@ -79,7 +79,7 @@ func TestDeleteTodo(t *testing.T) {
 
 	router.DELETE("/todos/:id", app.DeleteTodo)
 
-	id := 10
+	id := 12
 
 	req, err := http.NewRequest("DELETE", "/todos/"+strconv.Itoa(id), nil)
 	assert.NoError(t, err)
