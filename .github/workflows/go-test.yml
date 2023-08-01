@@ -21,6 +21,9 @@ jobs:
 
       - name: Install dependencies
         run: cd ./backend; go get -d ./...; cd ..
+        
+      - name: Run Tests
+        run: cd ./backend; go test -v ./...; cd ..
 
       - name: Run Staticcheck
         uses: dominikh/staticcheck-action@v1.3.0
