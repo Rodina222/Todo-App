@@ -1,135 +1,130 @@
 <template>
   <div id="app">
     <HelloToDo msg="✍️ ToDo Application" />
-    <TodoList
-      :todos="todos"
-      @add="addTodo"
-      @delete="deleteTodo"
-      @update="updateTodo"
+    <TaskList
+      :tasks="tasks"
+      :baseurl="baseurl"
+      @add="addTask"
+      @delete="deleteTask"
+      @update="updateTask"
     />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue'
+import axios from 'axios'
 
 import HelloToDo from './components/Header.vue'
-import TodoList from './components/TodoList.vue'
+import TaskList from './components/TodoList.vue'
+import { TaskType } from './components/TodoItem.vue'
 
 export default defineComponent({
   name: 'App',
   components: {
     HelloToDo,
-    TodoList
+    TaskList
   },
+
   data() {
     return {
-      todos: [] as { id: number; title: string; completed: boolean }[],
+      tasks: [] as TaskType[],
       error: '' as string,
-      baseurl: 'http://localhost:8096' as string
+      //baseurl: 'http://localhost:8096' as string
+      baseurl: process.env.VUE_APP_BASE_URL as string
     }
   },
   beforeMount() {
-    this.getTodos()
+    this.getTasks()
   },
 
   methods: {
-    addTodo(title: string) {
-      console.log('new todo', title)
-      const newTodo = { title: title, completed: false }
+    async addTask(title: string) {
+      // console.log('new todo', title)
+      const newTask = { title: title, completed: false }
 
-      console.log('todos', this.todos)
-
-      // Make a POST request to the backend API to add the new todo item
-      fetch(this.baseurl + '/todos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          Accept: 'application/json'
-        },
-        body: JSON.stringify(newTodo)
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          // Add the new todo item to the local state
-          this.todos.push({
-            id: data.id,
-            title: data.title,
-            completed: data.completed
-          })
-        })
-        .catch((error) => {
-          console.error('Error adding todo:', error)
-        })
-    },
-
-    updateTodo(id: number, title: string, completed: boolean) {
-      console.log('updated todo', title, completed)
-
-      const updatedTodo = { id: id, title: title, completed: completed }
-
-      // Make a POST request to the backend API to add the new todo item
-      fetch(this.baseurl + `/todos/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          Accept: 'application/json'
-        },
-        body: JSON.stringify(updatedTodo)
-      })
-        .then((response) => response.json())
-
-        .catch((error) => {
-          console.error('Error updating todo:', error)
+      try {
+        const response = await axios.post(this.baseurl + '/todos', newTask, {
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            Accept: 'application/json'
+          }
         })
 
-      this.getTodos()
-
-      console.log('todos', this.todos)
-    },
-    deleteTodo(id: number) {
-      const todoIndex = this.todos.findIndex((todo) => todo.id === id)
-      if (todoIndex >= 0) {
-        this.todos.splice(todoIndex, 1)
-        fetch(this.baseurl + `/todos/${id}`, {
-          method: 'DELETE'
+        const data = response.data
+        this.tasks.push({
+          id: data.id,
+          title: data.title,
+          completed: data.completed
         })
-          .then((response) => response.json())
-          .then((data) => {
-            console.log('Todo item deleted:', data)
-          })
-          .catch((error) => {
-            console.error('Error deleting todo:', error)
-          })
+      } catch (error) {
+        console.error('Error adding task:', error)
       }
     },
 
-    getTodos() {
-      fetch(this.baseurl + '/todos')
-        .then((response) => response.json())
-        .then((data) => {
-          this.todos = data
-        })
-        .catch((error) => {
-          console.error('Error fetching todos:', error)
-        })
+    async updateTask(id: number, title: string, completed: boolean) {
+      //console.log('updated todo', title, completed)
+
+      const updatedTodo = { id: id, title: title, completed: completed }
+
+      try {
+        const response = await axios.put(
+          this.baseurl + `/todos/${id}`,
+          updatedTodo,
+          {
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+              Accept: 'application/json'
+            }
+          }
+        )
+        const data = response.data
+      } catch (error) {
+        console.error('Error updating task:', error)
+      }
+
+      this.getTasks()
+      console.log('todos', this.tasks)
     },
 
-    getTodoById(id: number) {
-      fetch(this.baseurl + `/todos/${id}`)
-        .then((response) => response.json())
-        .then((data) => {
-          console.log('Todo item fetched:', data)
-          // Do something with the fetched todo item, such as updating a component's data property
-        })
-        .catch((error) => {
-          console.error(`Error fetching todo with ID ${id}:`, error)
-        })
+    async deleteTask(id: number) {
+      const todoIndex = this.tasks.findIndex((todo) => todo.id === id)
+      if (todoIndex >= 0) {
+        this.tasks.splice(todoIndex, 1)
+
+        try {
+          const response = await axios.delete(this.baseurl + `/todos/${id}`)
+          const data = response.data
+          // console.log('Todo item deleted:', data)
+        } catch (error) {
+          console.error('Error deleting todo:', error)
+        }
+      }
+    },
+
+    async getTasks() {
+      console.log('baseurl', this.baseurl)
+      try {
+        const response = await axios.get(this.baseurl + '/todos')
+        this.tasks = response.data
+      } catch (error) {
+        console.error('Error fetching todos:', error)
+      }
+    },
+
+    async getTaskById(id: number) {
+      try {
+        const response = await axios.get(this.baseurl + `/todos/${id}`)
+        const data = response.data
+        // console.log('Todo item fetched:', data)
+      } catch (error) {
+        console.error(`Error fetching todo with ID ${id}:`, error)
+      }
     }
   },
 
   mounted() {
-    this.getTodos()
+    this.getTasks()
   }
 })
 </script>
