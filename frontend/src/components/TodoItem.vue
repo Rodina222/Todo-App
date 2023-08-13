@@ -1,32 +1,44 @@
 <template>
   <li>
     <div v-if="editing">
-      <input type="text" v-model="editedTitle" @keyup.enter="updateTodo" />
-      <label @dblclick="editTitle()">
-        {{ todo.title }}
+      <input type="text" v-model="editedTitle" @keyup.enter="updateTask" />
+      <label @dblclick="editTitle">
+        {{ task.title }}
       </label>
     </div>
     <div v-else>
-      <label @dblclick="editTitle()">
-        <input type="checkbox" v-model="editedCompleted" @change="updateTodo" />
-        {{ editedTitle }}
+      <label @dblclick="editTitle">
+        <input type="checkbox" v-model="editedCompleted" @change="updateTask" />
+        <span :class="{ completed: editedCompleted }">{{ editedTitle }}</span>
       </label>
     </div>
-    <button @click="deleteTodo()">Delete</button>
+    <button @click="deleteTask">Delete</button>
   </li>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue'
 
+export type TaskType = {
+  id: number
+  title: string
+  completed: boolean
+}
+
+export enum TodoItemEvents {
+  DELETE_TASK = 'delete',
+  UPDATE_TASK = 'update',
+  EDIT_TITLE = 'editTitle'
+}
+
 export default defineComponent({
   name: 'TodoItem',
   props: {
-    todo: {
-      type: Object,
+    task: {
+      type: Object as () => TaskType,
       required: true,
       default: () => ({
-        title: 'todo',
+        title: 'task',
         completed: false
       })
     }
@@ -34,32 +46,41 @@ export default defineComponent({
   data() {
     return {
       editing: false as boolean,
-      editedTitle: this.todo.title as string,
-      editedCompleted: this.todo.completed as boolean
+      editedTitle: this.task.title as string,
+      editedCompleted: this.task.completed as boolean
     }
   },
   emits: ['add', 'delete', 'update'],
 
   methods: {
     markCompleted: function () {
-      this.editedCompleted = !this.todo.completed
-      this.updateTodo()
+      this.editedCompleted = !this.task.completed
+      this.updateTask()
     },
 
-    deleteTodo: function () {
-      this.$emit('delete', this.todo.id)
+    deleteTask: function () {
+      this.$emit(TodoItemEvents.DELETE_TASK, this.task.id)
     },
 
     editTitle() {
       this.editing = true
     },
 
-    updateTodo: function () {
-      this.$emit('update', this.todo.id, this.editedTitle, this.editedCompleted)
+    updateTask: function () {
+      this.$emit(
+        TodoItemEvents.UPDATE_TASK,
+        this.task.id,
+        this.editedTitle,
+        this.editedCompleted
+      )
       this.editing = false
     }
   }
 })
 </script>
 
-<style></style>
+<style>
+.completed {
+  text-decoration: line-through;
+}
+</style>

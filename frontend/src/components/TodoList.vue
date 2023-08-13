@@ -2,29 +2,29 @@
   <div class="TodoList">
     <input
       type="text"
-      class="form-control"
+      class="custom-input"
       placeholder="Add a new todo"
       v-model="title"
-      @keyup.enter="addTodo"
+      @keyup.enter="addTask"
     />
-    <button class="btn btn-primary" type="button" @click="addTodo">Add</button>
+    <button class="btn btn-primary" type="button" @click="addTask">Add</button>
     <ul>
       <todo-item
-        v-for="todo in todos"
-        :key="todo.id"
-        :todo="todo"
+        v-for="task in tasks"
+        :key="task.id"
+        :task="task"
         class="todoItem"
-        @delete="deleteTodo"
-        @update="updateTodo"
+        @delete="deleteTask"
+        @update="updateTask"
       ></todo-item>
     </ul>
-    <h2 v-show="todos.length === 0">No Todos Here😞</h2>
+    <h2 v-show="tasks.length === 0">No Todos Here😞</h2>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import TodoItem from './TodoItem.vue'
+import TodoItem, { TaskType } from './TodoItem.vue'
 
 export default defineComponent({
   name: 'TodoList',
@@ -33,14 +33,12 @@ export default defineComponent({
   },
 
   props: {
-    todos: {
-      type: Object,
+    tasks: {
+      type: Array as () => TaskType[],
       required: true,
-      default: () => ({
-        title: 'todo',
-        completed: false
-      })
-    }
+      default: () => [] // Default value should be an empty array, not an object
+    },
+    baseurl: String
   },
   data() {
     return {
@@ -51,19 +49,19 @@ export default defineComponent({
   },
   emits: ['add', 'delete', 'markCompleted', 'update'],
   methods: {
-    addTodo() {
+    addTask() {
       /*  this.todos.push({ title: this.newTodo, completed: false })*/
 
       this.$emit('add', this.title)
       this.title = ''
     },
-    deleteTodo: function (id: number) {
+    deleteTask: function (id: number) {
       this.$emit('delete', id)
     },
     markCompleted(index: number) {
       this.$emit('markCompleted', index)
     },
-    updateTodo(id: number, title: string, completed: boolean) {
+    updateTask(id: number, title: string, completed: boolean) {
       this.$emit('update', id, title, completed)
     }
   }
@@ -71,7 +69,7 @@ export default defineComponent({
 </script>
 
 <style>
-.form-control {
+.custom-input {
   height: 25px;
   width: 300px;
   font-size: 20px;
@@ -98,7 +96,7 @@ export default defineComponent({
 }
 
 .todoCheckbox {
-  margin-right: 10px; /* Decrease the margin to align the checkbox with the grey box */
+  margin-right: 10px;
   transform: scale(1.5);
 }
 
