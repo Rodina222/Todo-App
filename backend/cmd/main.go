@@ -16,8 +16,10 @@ var ErrDBPathNotFound = errors.New("database path must be provided after the -db
 func main() {
 
 	var dbPath string
+	var port int
 
 	flag.StringVar(&dbPath, "db", "./todoapp.db", "mention the filepath of the database")
+	flag.IntVar(&port, "p", 8096, "server port to run the app")
 
 	flag.Parse()
 
@@ -31,7 +33,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	app := server.NewApp(db)
+	app, err := server.NewApp(db, port)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// set gin mode from environment variable
 	ginMode := os.Getenv("GIN_MODE")
