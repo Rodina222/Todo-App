@@ -23,7 +23,8 @@ func TestCreateTodo(t *testing.T) {
 	database, err := ConnectToDB(dbPath)
 	assert.NoError(t, err)
 
-	app := NewApp(database)
+	app, err := NewApp(database, 8096)
+	assert.NoError(t, err)
 
 	router := gin.Default()
 
@@ -77,7 +78,8 @@ func TestGetAllTodos(t *testing.T) {
 	db, err := ConnectToDB(dbPath)
 	assert.NoError(t, err)
 
-	app := NewApp(db)
+	app, err := NewApp(db, 8096)
+	assert.NoError(t, err)
 
 	router := gin.Default()
 
@@ -103,7 +105,8 @@ func TestDeleteTodo(t *testing.T) {
 	database, err := ConnectToDB(dbPath)
 	assert.NoError(t, err)
 
-	app := NewApp(database)
+	app, err := NewApp(database, 8096)
+	assert.NoError(t, err)
 
 	router := gin.Default()
 
@@ -158,7 +161,8 @@ func TestUpdateTodo(t *testing.T) {
 	database, err := ConnectToDB(dbPath)
 	assert.NoError(t, err)
 
-	app := NewApp(database)
+	app, err := NewApp(database, 8096)
+	assert.NoError(t, err)
 
 	router := gin.Default()
 
@@ -246,7 +250,7 @@ func TestGetTodoByID(t *testing.T) {
 	database, err := ConnectToDB(dbPath)
 	assert.NoError(t, err)
 
-	app := NewApp(database)
+	app, err := NewApp(database, 8096)
 	assert.NoError(t, err)
 
 	router := gin.Default()

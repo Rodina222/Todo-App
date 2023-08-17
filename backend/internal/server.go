@@ -2,6 +2,8 @@ package internal
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -14,9 +16,13 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// ErrInvalidPort is returned when the listening port is outside the range (from 1 to 65535)
+var ErrInvalidPort = errors.New("invalid port number insert a port from 1 to 65535")
+
 // App is a struct that holds a struct of DB
 type App struct {
-	db DB
+	db   DB
+	port int
 }
 
 // Todo is a struct that holds one todo item
@@ -32,24 +38,25 @@ type ErrorResponse struct {
 }
 
 // NewApp returns a new app that holds the database
-func NewApp(db *sql.DB) *App {
+func NewApp(db *sql.DB, inputPort int) (*App, error) {
 
+	// check input port from user
+	if inputPort < 1 || inputPort > 65535 {
+		return nil, ErrInvalidPort
+	}
 	appDB := DB{db: db}
-	return &App{db: appDB}
+	return &App{db: appDB, port: inputPort}, nil
 
 }
 
-// Run calls the internal appRouter method to create the app router and start the server
+// Run calls the internal registerHandlers method to create the app router and start the server
 func (app *App) Run(ginMode string) error {
 
-	if err := app.appRouter(ginMode); err != nil {
-		return err
-	}
+	return app.registerHandlers(ginMode)
 
-	return nil
 }
 
-func (app *App) appRouter(ginMode string) error {
+func (app *App) registerHandlers(ginMode string) error {
 
 	gin.SetMode(ginMode)
 
@@ -71,9 +78,14 @@ func (app *App) appRouter(ginMode string) error {
 	router.GET("/todos", app.GetAllTodos)
 	router.PUT("/todos/:id", app.UpdateTodo)
 
-	err := router.Run(":8096")
+	port := fmt.Sprintf(":%d", app.port)
 
-	return err
+	if err := router.Run(port); err != nil {
+		return err
+	}
+
+	return http.ListenAndServe(port, nil)
+
 }
 
 // GetAllTodos returns all the todos in the database
