@@ -8,8 +8,8 @@ This is a todo app that supports the following features:
 4. Rename a todo.
 
 ## __API Endpoints:__
-- `/GET /todos:` gets a list of all todos.
-- `/GET /todos/id:` gets a specific todo by id.
+- `GET /todos:` gets a list of all todos.
+- `GET /todos/id:` gets a specific todo by id.
 - `POST /todos:` creates a new todo.
 - `DELETE /todos/id:` deletes a specific todo by id. 
 - `PUT /todos/id:` updates a specific todo by id.
@@ -37,11 +37,12 @@ $ go build -o "bin/app" cmd/main.go
 
 1. Run the app as follows:
 ```sh
-$ ./bin/app -db [dbPath]
+$ ./bin/app -db [dbPath] -p [portNumber]
 ```
 Notes:
 - You need to move the binary to any `$PATH` directory first.
 - You must give the database path or it will be treated as an error.
+- If you do not specify a port number, it will run on port "8096."
 
 2. Get all todos as follows: 
 - `/GET /todos:` gets a list of all todos.
@@ -77,6 +78,6 @@ go test ./....
 If all tests pass on, the result should show that the tests were successful as follows:
 ```sh
 PASS
-ok      github.com/codescalersinternships/backend/ToDoApp-Rodina/internal       0.091s
+ok      github.com/codescalersinternships/backend/ToDoApp-Rodina/internal       0.485s
 ```
 If any test fails, the output will tell you which test failed.
