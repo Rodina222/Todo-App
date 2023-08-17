@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"log"
+	"os"
 
 	server "github.com/codescalersinternships/ToDoApp-Rodina/backend/internal"
 	"github.com/gin-gonic/gin"
@@ -13,8 +14,6 @@ import (
 var ErrDBPathNotFound = errors.New("database path must be provided after the -db flag")
 
 func main() {
-
-	gin.SetMode(gin.ReleaseMode)
 
 	var dbPath string
 
@@ -32,17 +31,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	app, err := server.NewApp(db)
+	app := server.NewApp(db)
 
-	if err != nil {
+	// set gin mode from environment variable
+	ginMode := os.Getenv("GIN_MODE")
+	if ginMode == "" {
+		ginMode = gin.ReleaseMode
+	}
+
+	if err = app.Run(ginMode); err != nil {
+
+		db.Close()
 		log.Fatal(err)
 	}
 
-	if err = app.Run(); err != nil {
-
-		log.Fatal(err)
-	}
-
-	defer db.Close()
+	db.Close()
 
 }
