@@ -68,7 +68,26 @@ func (db *DB) CreateTable() error {
 		return err
 	}
 
-	_, err = query.Exec()
+	if _, err = query.Exec(); err != nil {
+		return err
+
+	}
+
+	if err = db.doesTableExists("todos"); err != nil {
+		return err
+
+	}
+
+	return nil
+}
+
+func (db *DB) doesTableExists(tableName string) error {
+
+	query := fmt.Sprintf("SELECT name FROM sqlite_master WHERE type='table' AND name='%s'", tableName)
+	row := db.db.QueryRow(query)
+
+	var name string
+	err := row.Scan(&name)
 
 	if err != nil {
 		return err
@@ -77,47 +96,99 @@ func (db *DB) CreateTable() error {
 	return nil
 }
 
-func (db *DB) getAllTodos() (*sql.Rows, error) {
+// GetAllTodosDb returns all the todos in the database
+func (db *DB) GetAllTodosDb() ([]Todo, error) {
+
+	var todos []Todo
 
 	rows, err := db.db.Query(getAllTodos)
+
 	if err != nil {
 		return nil, err
 	}
-	return rows, nil
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var todo Todo
+		if err := rows.Scan(&todo.ID, &todo.Title, &todo.Completed); err != nil {
+			return nil, err
+		}
+		todos = append(todos, todo)
+	}
+
+	return todos, nil
 }
 
-func (db *DB) getTodobyID(id string) *sql.Row {
+// GetTodobyIdDb returns the todo item by searching in the database by its id
+func (db *DB) GetTodobyIdDb(id string) (Todo, error) {
+
+	var todo Todo
 
 	row := db.db.QueryRow(getTodo, id)
 
-	return row
+	if err := row.Scan(&todo.ID, &todo.Title, &todo.Completed); err != nil {
+		return todo, err
+	}
+
+	return todo, nil
 
 }
 
-func (db *DB) createTodo(todo Todo) (sql.Result, error) {
+// CreateTodoDb inserts a todo in the database
+func (db *DB) CreateTodoDb(todo Todo) (int, error) {
 
 	result, err := db.db.Exec(createTodo, todo.Title, todo.Completed)
+
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	return result, nil
+
+	id, err := result.LastInsertId()
+
+	if err != nil {
+		return 0, err
+	}
+
+	return int(id), nil
+
 }
 
-func (db *DB) deleteTodo(id string) (sql.Result, error) {
+// DeleteTodoDb deletes a todo item given its id
+func (db *DB) DeleteTodoDb(id string) (bool, error) {
 
 	result, err := db.db.Exec(deleteTodo, id)
-
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	return result, nil
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if rowsAffected == 0 {
+		return false, nil
+	}
+
+	return true, nil
 }
 
-func (db *DB) updateTodo(todo Todo) (sql.Result, error) {
-
+// UpdateTodoDb updates the todo item using its id
+func (db *DB) UpdateTodoDb(todo Todo) (bool, error) {
 	result, err := db.db.Exec(updateTodo, todo.Title, todo.Completed, todo.ID)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	return result, nil
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if rowsAffected == 0 {
+		return false, nil
+	}
+
+	return true, nil
 }

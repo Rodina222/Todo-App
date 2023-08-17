@@ -32,24 +32,26 @@ type ErrorResponse struct {
 }
 
 // NewApp returns a new app that holds the database
-func NewApp(db *sql.DB) (*App, error) {
+func NewApp(db *sql.DB) *App {
 
 	appDB := DB{db: db}
-	return &App{db: appDB}, nil
+	return &App{db: appDB}
 
 }
 
 // Run calls the internal appRouter method to create the app router and start the server
-func (app *App) Run() error {
+func (app *App) Run(ginMode string) error {
 
-	if err := app.appRouter(); err != nil {
+	if err := app.appRouter(ginMode); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (app *App) appRouter() error {
+func (app *App) appRouter(ginMode string) error {
+
+	gin.SetMode(ginMode)
 
 	router := gin.Default()
 
@@ -84,31 +86,13 @@ func (app *App) appRouter() error {
 // @Router /todos [get]
 func (app *App) GetAllTodos(c *gin.Context) {
 
-	var todos []Todo
-
 	error := ErrorResponse{"failed to get all todos"}
 
-	rows, err := app.db.getAllTodos()
+	todos, err := app.db.GetAllTodosDb()
 
 	if err != nil {
 		log.Println("error:", err)
 		c.JSON(http.StatusInternalServerError, error)
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var todo Todo
-		if err := rows.Scan(&todo.ID, &todo.Title, &todo.Completed); err != nil {
-			log.Println("error:", err)
-			c.JSON(http.StatusInternalServerError, error)
-			return
-		}
-		todos = append(todos, todo)
-	}
-
-	if len(todos) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "no todos found"})
 		return
 	}
 
@@ -137,15 +121,8 @@ func (app *App) CreateTodo(c *gin.Context) {
 		return
 	}
 
-	result, err := app.db.createTodo(todo)
+	id, err := app.db.CreateTodoDb(todo)
 
-	if err != nil {
-		log.Println("error:", err)
-		c.JSON(http.StatusInternalServerError, error)
-		return
-	}
-
-	id, err := result.LastInsertId()
 	if err != nil {
 		log.Println("error:", err)
 		c.JSON(http.StatusInternalServerError, error)
@@ -167,23 +144,24 @@ func (app *App) CreateTodo(c *gin.Context) {
 // @Router /todos/{id} [get]
 func (app *App) GetTodoByID(c *gin.Context) {
 
-	var todo Todo
 	id := c.Param("id")
 
 	error := ErrorResponse{"failed to get todo"}
 
-	row := app.db.getTodobyID(id)
+	todo, err := app.db.GetTodobyIdDb(id)
 
-	err := row.Scan(&todo.ID, &todo.Title, &todo.Completed)
+	if err == sql.ErrNoRows {
+		log.Println("error:", err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "todo not found"})
+		return
+
+	}
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Println("error:", err)
-			c.JSON(http.StatusNotFound, gin.H{"error": "todo not found"})
-			return
-		}
+		log.Println("error:", err)
 		c.JSON(http.StatusInternalServerError, error)
 		return
+
 	}
 
 	c.JSON(http.StatusOK, todo)
@@ -200,44 +178,35 @@ func (app *App) GetTodoByID(c *gin.Context) {
 // @Failure 500 {object} ErrorResponse "failed to delete todo"
 // @Router /todos/{id} [delete]
 func (app *App) DeleteTodo(c *gin.Context) {
-
 	id := c.Param("id")
 	error := ErrorResponse{"failed to delete todo"}
 
-	result, err := app.db.deleteTodo(id)
-
+	deleted, err := app.db.DeleteTodoDb(id)
 	if err != nil {
 		log.Println("error:", err)
 		c.JSON(http.StatusInternalServerError, error)
 		return
 	}
 
-	// check if the id is found in todos table or not
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		log.Println("error:", err)
-		c.JSON(http.StatusInternalServerError, error)
-		return
-	}
-
-	if rowsAffected == 0 {
-		log.Println("error:", err)
+	if !deleted {
+		log.Println("failed to delete todo because it is not found in the database")
 		c.JSON(http.StatusNotFound, gin.H{"error": "Todo not found"})
 		return
+
 	}
 
-	c.JSON(http.StatusAccepted, gin.H{"message": "Todo deleted"})
+	c.JSON(http.StatusOK, gin.H{"message": "Todo deleted"})
 }
 
-// UpdateTodo updates the todo item to using its id
+// UpdateTodo updates the todo item using its id
 // @Summary Updates a todo
 // @Description Changes the complete status or the title of the todo
 // @Tags todos
 // @Produce json
 // @Param todo body Todo true "Todo body to be updated"
 // @Success 201 {string} string "Todo updated successfully"
-// @Failure 404 {object} ErrorResponse "invalid ID"
-// @Failure 400 {object} ErrorResponse "todo not found"
+// @Failure 404 {object} object "invalid ID" or "Todo is not found"
+// @Failure 400 {object} object "failed to update todo due to bad request"
 // @Failure 500 {object} ErrorResponse "failed to update todo"
 // @Router /todos/{id} [put]
 func (app *App) UpdateTodo(c *gin.Context) {
@@ -245,12 +214,12 @@ func (app *App) UpdateTodo(c *gin.Context) {
 	var todo Todo
 	error := ErrorResponse{"failed to update todo"}
 
-	// Set the ID field of the todo variable explicitly
+	// set the ID field of the todo variable explicitly
 	id, err := strconv.Atoi(c.Param("id"))
 
 	if err != nil {
 		log.Println("error:", err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "invalid ID"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -258,15 +227,20 @@ func (app *App) UpdateTodo(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&todo); err != nil {
 		log.Println("error:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "todo not found"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to update todo due to bad request"})
 		return
 	}
 
-	_, err = app.db.updateTodo(todo)
-
+	updated, err := app.db.UpdateTodoDb(todo)
 	if err != nil {
 		log.Println("error:", err)
 		c.JSON(http.StatusInternalServerError, error)
+		return
+	}
+
+	if !updated {
+		log.Println("failed to update todo because it is not found in the database")
+		c.JSON(http.StatusNotFound, gin.H{"error": "Todo is not found"})
 		return
 	}
 

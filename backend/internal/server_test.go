@@ -119,11 +119,11 @@ func TestDeleteTodo(t *testing.T) {
 
 		db := &DB{db: database}
 
-		id, err := db.CreateTodo(newTodo)
+		id, err := db.CreateTodoDb(newTodo)
 		assert.NoError(t, err)
 		fmt.Println("id", id)
 
-		req, err := http.NewRequest("DELETE", "/todos/"+strconv.FormatInt(id, 10), nil)
+		req, err := http.NewRequest("DELETE", "/todos/"+strconv.Itoa(id), nil)
 		assert.NoError(t, err)
 
 		rec := httptest.NewRecorder()
@@ -174,7 +174,7 @@ func TestUpdateTodo(t *testing.T) {
 
 		db := &DB{db: database}
 
-		id, err := db.CreateTodo(newTodo)
+		id, err := db.CreateTodoDb(newTodo)
 		assert.NoError(t, err)
 
 		fmt.Println("id", id)
@@ -188,7 +188,7 @@ func TestUpdateTodo(t *testing.T) {
 		requestBody, err := json.Marshal(updatedTodo)
 		assert.NoError(t, err)
 
-		req, err := http.NewRequest("PUT", "/todos/"+strconv.FormatInt(id, 10), bytes.NewBuffer(requestBody))
+		req, err := http.NewRequest("PUT", "/todos/"+strconv.Itoa(id), bytes.NewBuffer(requestBody))
 		assert.NoError(t, err)
 
 		rec := httptest.NewRecorder()
@@ -263,7 +263,7 @@ func TestGetTodoByID(t *testing.T) {
 
 		db := &DB{db: database}
 
-		id, err := db.CreateTodo(newTodo)
+		id, err := db.CreateTodoDb(newTodo)
 		assert.NoError(t, err)
 		fmt.Println("id", id)
 
