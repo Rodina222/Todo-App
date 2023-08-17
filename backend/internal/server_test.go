@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strconv"
 	"testing"
 
@@ -15,43 +16,68 @@ import (
 
 func TestCreateTodo(t *testing.T) {
 
-	db, err := ConnectToDB("./todoDB.db")
+	tempDir := t.TempDir()
+
+	dbPath := filepath.Join(tempDir, "todoDB.db")
+
+	database, err := ConnectToDB(dbPath)
 	assert.NoError(t, err)
 
-	app, err := NewApp(db)
-	assert.NoError(t, err)
+	app := NewApp(database)
 
 	router := gin.Default()
 
 	router.POST("/todos", app.CreateTodo)
 
-	newTodo := Todo{
-		Title:     "Todo",
-		Completed: false,
-	}
-	requestBody, err := json.Marshal(newTodo)
-	assert.NoError(t, err)
+	t.Run("create todo successfully", func(t *testing.T) {
 
-	request, err := http.NewRequest("POST", "/todos", bytes.NewBuffer(requestBody))
-	assert.NoError(t, err)
+		newTodo := Todo{
+			Title:     "Todo",
+			Completed: false,
+		}
+		requestBody, err := json.Marshal(newTodo)
+		assert.NoError(t, err)
 
-	request.Header.Set("Content-Type", "application/json")
+		request, err := http.NewRequest("POST", "/todos", bytes.NewBuffer(requestBody))
+		assert.NoError(t, err)
 
-	recorder := httptest.NewRecorder()
+		request.Header.Set("Content-Type", "application/json")
 
-	router.ServeHTTP(recorder, request)
+		recorder := httptest.NewRecorder()
 
-	assert.Equal(t, http.StatusCreated, recorder.Code, "got %d status code but want status code 201", recorder.Code)
+		router.ServeHTTP(recorder, request)
+
+		assert.Equal(t, http.StatusCreated, recorder.Code, "got %d status code but want status code 201", recorder.Code)
+
+	})
+
+	t.Run("failed to create todo due to bad request", func(t *testing.T) {
+
+		requestBody := []byte(`{"id":1,"title":"todo","completed": }`)
+
+		req, err := http.NewRequest("POST", "/todos", bytes.NewBuffer(requestBody))
+		assert.NoError(t, err)
+
+		rec := httptest.NewRecorder()
+
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusBadRequest, rec.Code, "got %d status code but want status code 400", rec.Code)
+
+	})
 
 }
 
 func TestGetAllTodos(t *testing.T) {
 
-	db, err := ConnectToDB("./todoDB.db")
+	tempDir := t.TempDir()
+
+	dbPath := filepath.Join(tempDir, "todoDB.db")
+
+	db, err := ConnectToDB(dbPath)
 	assert.NoError(t, err)
 
-	app, err := NewApp(db)
-	assert.NoError(t, err)
+	app := NewApp(db)
 
 	router := gin.Default()
 
@@ -70,121 +96,199 @@ func TestGetAllTodos(t *testing.T) {
 
 func TestDeleteTodo(t *testing.T) {
 
-	db, err := ConnectToDB("./todoDB.db")
+	tempDir := t.TempDir()
+
+	dbPath := filepath.Join(tempDir, "todoDB.db")
+
+	database, err := ConnectToDB(dbPath)
 	assert.NoError(t, err)
 
-	app, err := NewApp(db)
-	assert.NoError(t, err)
+	app := NewApp(database)
 
 	router := gin.Default()
 
-	router.POST("/todos", app.CreateTodo)
-
-	newTodo := Todo{
-		ID:        15,
-		Title:     "Todo2",
-		Completed: false,
-	}
-
-	requestBody, err := json.Marshal(newTodo)
-	assert.NoError(t, err)
-
-	request, err := http.NewRequest("POST", "/todos", bytes.NewBuffer(requestBody))
-	assert.NoError(t, err)
-
-	request.Header.Set("Content-Type", "application/json")
-
-	recorder := httptest.NewRecorder()
-
-	router.ServeHTTP(recorder, request)
-
-	assert.Equal(t, http.StatusCreated, recorder.Code, "got %d status code but want status code 201", recorder.Code)
-
 	router.DELETE("/todos/:id", app.DeleteTodo)
 
-	fmt.Println("newTodo.ID", newTodo.ID)
+	t.Run("delete todo successfully", func(t *testing.T) {
 
-	req, err := http.NewRequest("DELETE", "/todos/"+strconv.Itoa(newTodo.ID), nil)
-	assert.NoError(t, err)
+		newTodo := Todo{
+			ID:        15,
+			Title:     "Todo2",
+			Completed: false,
+		}
 
-	rec := httptest.NewRecorder()
+		db := &DB{db: database}
 
-	router.ServeHTTP(recorder, req)
+		id, err := db.CreateTodo(newTodo)
+		assert.NoError(t, err)
+		fmt.Println("id", id)
 
-	assert.Equal(t, http.StatusOK, rec.Code, "got %d status code but want status code 200", rec.Code)
+		req, err := http.NewRequest("DELETE", "/todos/"+strconv.FormatInt(id, 10), nil)
+		assert.NoError(t, err)
+
+		rec := httptest.NewRecorder()
+
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code, "got %d status code but want status code 200", rec.Code)
+
+	})
+
+	t.Run("failed to delete todo due to invalid id", func(t *testing.T) {
+
+		req, err := http.NewRequest("DELETE", "/todos/5", nil)
+		assert.NoError(t, err)
+
+		rec := httptest.NewRecorder()
+
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusNotFound, rec.Code, "got %d status code but want status code 404", rec.Code)
+
+	})
 
 }
 
 func TestUpdateTodo(t *testing.T) {
 
-	db, err := ConnectToDB("./todoDB.db")
+	tempDir := t.TempDir()
+
+	dbPath := filepath.Join(tempDir, "todoDB.db")
+
+	database, err := ConnectToDB(dbPath)
 	assert.NoError(t, err)
 
-	app, err := NewApp(db)
-	assert.NoError(t, err)
+	app := NewApp(database)
 
 	router := gin.Default()
 
 	router.PUT("/todos/:id", app.UpdateTodo)
 
-	updatedTodo := Todo{
-		ID:        5,
-		Title:     "Todo3",
-		Completed: true,
-	}
+	t.Run("update todo successfully", func(t *testing.T) {
 
-	requestBody, err := json.Marshal(updatedTodo)
-	assert.NoError(t, err)
+		newTodo := Todo{
+			ID:        1,
+			Title:     "Todo5",
+			Completed: false,
+		}
 
-	req, err := http.NewRequest("PUT", "/todos/"+strconv.Itoa(updatedTodo.ID), bytes.NewBuffer(requestBody))
-	assert.NoError(t, err)
+		db := &DB{db: database}
 
-	recorder := httptest.NewRecorder()
+		id, err := db.CreateTodo(newTodo)
+		assert.NoError(t, err)
 
-	router.ServeHTTP(recorder, req)
+		fmt.Println("id", id)
 
-	assert.Equal(t, http.StatusOK, recorder.Code, "got %d status code but want status code 200", recorder.Code)
+		updatedTodo := Todo{
+			ID:        1,
+			Title:     "Todo5",
+			Completed: true,
+		}
+
+		requestBody, err := json.Marshal(updatedTodo)
+		assert.NoError(t, err)
+
+		req, err := http.NewRequest("PUT", "/todos/"+strconv.FormatInt(id, 10), bytes.NewBuffer(requestBody))
+		assert.NoError(t, err)
+
+		rec := httptest.NewRecorder()
+
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code, "got %d status code but want status code 200", rec.Code)
+
+	})
+
+	t.Run("failed to update todo due to invalid id", func(t *testing.T) {
+
+		updatedTodo := Todo{
+			ID:        100,
+			Title:     "Todo5",
+			Completed: true,
+		}
+
+		requestBody, err := json.Marshal(updatedTodo)
+		assert.NoError(t, err)
+
+		req, err := http.NewRequest("PUT", "/todos/"+strconv.Itoa(updatedTodo.ID), bytes.NewBuffer(requestBody))
+		assert.NoError(t, err)
+
+		rec := httptest.NewRecorder()
+
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusNotFound, rec.Code, "got %d status code but want status code 404", rec.Code)
+
+	})
+
+	t.Run("failed to update todo due to bad request", func(t *testing.T) {
+
+		requestBody := []byte(`{"id":1,"title":"todo","completed": }`)
+
+		req, err := http.NewRequest("PUT", "/todos/1", bytes.NewBuffer(requestBody))
+		assert.NoError(t, err)
+
+		rec := httptest.NewRecorder()
+
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusBadRequest, rec.Code, "got %d status code but want status code 400", rec.Code)
+
+	})
 }
 
 func TestGetTodoByID(t *testing.T) {
 
-	db, err := ConnectToDB("./todoDB.db")
+	tempDir := t.TempDir()
+
+	dbPath := filepath.Join(tempDir, "todoDB.db")
+
+	database, err := ConnectToDB(dbPath)
 	assert.NoError(t, err)
 
-	app, err := NewApp(db)
+	app := NewApp(database)
 	assert.NoError(t, err)
 
 	router := gin.Default()
 
-	router.POST("/todos", app.CreateTodo)
-
-	newTodo := Todo{
-		ID:        12,
-		Title:     "Todo",
-		Completed: false,
-	}
-
-	requestBody, err := json.Marshal(newTodo)
-	assert.NoError(t, err)
-
-	request, err := http.NewRequest("POST", "/todos", bytes.NewBuffer(requestBody))
-	assert.NoError(t, err)
-
-	request.Header.Set("Content-Type", "application/json")
-
-	recorder := httptest.NewRecorder()
-
-	router.ServeHTTP(recorder, request)
-
-	assert.Equal(t, http.StatusCreated, recorder.Code, "got %d status code but want status code 201", recorder.Code)
-
 	router.GET("/todos/:id", app.GetTodoByID)
 
-	req, err := http.NewRequest("GET", "/todos/"+strconv.Itoa(newTodo.ID), nil)
-	assert.NoError(t, err)
+	t.Run("get todo successfully", func(t *testing.T) {
 
-	recorder = httptest.NewRecorder()
+		newTodo := Todo{
+			ID:        1,
+			Title:     "Todo2",
+			Completed: false,
+		}
 
-	router.ServeHTTP(recorder, req)
+		db := &DB{db: database}
+
+		id, err := db.CreateTodo(newTodo)
+		assert.NoError(t, err)
+		fmt.Println("id", id)
+
+		req, err := http.NewRequest("GET", "/todos/"+strconv.Itoa(newTodo.ID), nil)
+		assert.NoError(t, err)
+
+		recorder := httptest.NewRecorder()
+
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusOK, recorder.Code, "got %d status code but want status code 200", recorder.Code)
+
+	})
+
+	t.Run("failed to get todo due to invalid id", func(t *testing.T) {
+
+		req, err := http.NewRequest("GET", "/todos/50", nil)
+		assert.NoError(t, err)
+
+		recorder := httptest.NewRecorder()
+
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusNotFound, recorder.Code, "got %d status code but want status code 404", recorder.Code)
+
+	})
 
 }
