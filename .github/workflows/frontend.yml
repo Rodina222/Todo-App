@@ -14,6 +14,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.x'
+
       - name: Install frontend dependencies
         run: npm install
         working-directory: frontend
@@ -21,3 +26,4 @@ jobs:
       - name: Run frontend tests
         run: npx cypress run --component
         working-directory: ./frontend/
+        

@@ -28,6 +28,7 @@
     ]
   },
   "include": [
+    "cypress",
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
@@ -35,8 +36,6 @@
     "tests/**/*.ts",
     "tests/**/*.tsx",
     "src/App.js",
-    "types.ts",
-
   ],
   "exclude": [
     "node_modules"

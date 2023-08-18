@@ -3,7 +3,6 @@
     <HelloToDo msg="✍️ ToDo Application" />
     <TaskList
       :tasks="tasks"
-      :baseurl="baseurl"
       @add="addTask"
       @delete="deleteTask"
       @update="updateTask"
@@ -30,8 +29,8 @@ export default defineComponent({
     return {
       tasks: [] as TaskType[],
       error: '' as string,
-      //baseurl: 'http://localhost:8096' as string
-      baseurl: process.env.VUE_APP_BASE_URL as string
+      baseurl: 'http://localhost:8096' as string
+      //baseurl: this.$API_BASE_URL
     }
   },
   beforeMount() {

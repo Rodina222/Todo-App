@@ -1,10 +1,5 @@
 /// <reference types="cypress" />
 // ***********************************************
-
-import { mount } from '@cypress/vue'
-Cypress.Commands.add('mount', (component, options) => {
-  return mount(component, options)
-})
 // This example commands.ts shows you how to
 // create various custom commands and overwrite
 // existing commands.
