@@ -1,4 +1,4 @@
-# ToDo App:
+# ToDo App
 
 This is a todo app, which is a web-based user interface, where users may interact with their tasks and manage their todo list. The frontend is designed with Vue.js and interfaces with the backend API designed in Go.
 
@@ -93,5 +93,3 @@ $ cd frontend
 $ npm install
 $ npm run test
 ```
-
-
