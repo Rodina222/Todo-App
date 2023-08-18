@@ -1,0 +1,3 @@
+src/main.ts
+src/components/_tests_
+cypress/support/component.ts
