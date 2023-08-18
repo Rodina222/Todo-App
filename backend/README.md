@@ -1,11 +1,13 @@
 # ToDo App Backend
 
-This is a todo app that supports the following features: 
+This is the Go-based backend API for the todo app.
 
-1. Assist users in organising their tasks into todos.
-2. Mark the completed todos using a checkbox.
-3. Remove unnecessary or unwanted todos.
-4. Rename a todo.
+## Features
+
+1. Add new todos to help users organize their tasks in the todos table.
+2. Update the status of completed todos to done.
+3. Delete unwanted todos by removing them from the todos table.
+4. Update the title of the todo in the todos table.
 
 ## __API Endpoints:__
 - `GET /todos:` gets a list of all todos.
@@ -42,7 +44,7 @@ $ ./bin/app -db [dbPath] -p [portNumber]
 Notes:
 - You need to move the binary to any `$PATH` directory first.
 - You must give the database path or it will be treated as an error.
-- If you do not specify a port number, it will run on port "8096."
+- If you do not specify a port number, it will run on port "8096".
 
 2. Get all todos as follows: 
 - `/GET /todos:` gets a list of all todos.
