@@ -29,8 +29,8 @@ export default defineComponent({
     return {
       tasks: [] as TaskType[],
       error: '' as string,
-      baseurl: 'http://localhost:8096' as string
-      //baseurl: this.$API_BASE_URL
+      //baseurl: 'http://localhost:8096' as string
+      baseurl: this.$API_BASE_URL
     }
   },
   beforeMount() {
@@ -39,7 +39,6 @@ export default defineComponent({
 
   methods: {
     async addTask(title: string) {
-      // console.log('new todo', title)
       const newTask = { title: title, completed: false }
 
       try {
@@ -51,6 +50,7 @@ export default defineComponent({
         })
 
         const data = response.data
+        console.debug(data)
         this.tasks.push({
           id: data.id,
           title: data.title,
@@ -62,8 +62,6 @@ export default defineComponent({
     },
 
     async updateTask(id: number, title: string, completed: boolean) {
-      //console.log('updated todo', title, completed)
-
       const updatedTodo = { id: id, title: title, completed: completed }
 
       try {
@@ -78,6 +76,7 @@ export default defineComponent({
           }
         )
         const data = response.data
+        console.debug(data)
       } catch (error) {
         console.error('Error updating task:', error)
       }
@@ -94,7 +93,7 @@ export default defineComponent({
         try {
           const response = await axios.delete(this.baseurl + `/todos/${id}`)
           const data = response.data
-          // console.log('Todo item deleted:', data)
+          console.debug(data)
         } catch (error) {
           console.error('Error deleting todo:', error)
         }
@@ -115,7 +114,7 @@ export default defineComponent({
       try {
         const response = await axios.get(this.baseurl + `/todos/${id}`)
         const data = response.data
-        // console.log('Todo item fetched:', data)
+        console.debug(data)
       } catch (error) {
         console.error(`Error fetching todo with ID ${id}:`, error)
       }
